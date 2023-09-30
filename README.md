@@ -16,11 +16,6 @@ If you perform quickstep with shield equipped then invincibility frames will be 
 ## Installation (manual)
 Extract Quickstep.dll file to your BepInEx\Plugins\ folder
 
-## Compatibility
-* The mod should be compatible with any mods changing item prices to make it sellable and extending tradeable item lists
-* Incompatible with any mod hiding vanilla store UI
-* Mod should be compatible with mods adding more traders with unique names (until they use vanilla store UI)
-
 ## Mirrors
 [Nexus](https://www.nexusmods.com/valheim/mods/2547)
 
