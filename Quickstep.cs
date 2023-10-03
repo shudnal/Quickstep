@@ -15,7 +15,7 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.0";
+        const string pluginVersion = "1.0.1";
 
         private Harmony _harmony;
 
@@ -32,7 +32,6 @@ namespace Quickstep
         private static ConfigEntry<float> dashStaminaMultiplier;
 
         private static ConfigEntry<bool> allowBareFists;
-
         private static ConfigEntry<bool> allowSwords;
         private static ConfigEntry<bool> allowKnives;
         private static ConfigEntry<bool> allowClubs;
@@ -45,6 +44,33 @@ namespace Quickstep
         private static ConfigEntry<bool> allowUnarmed;
         private static ConfigEntry<bool> allowPickaxes;
         private static ConfigEntry<bool> allowCrossbows;
+
+        private static ConfigEntry<float> dashForceBareFists;
+        private static ConfigEntry<float> dashTimeBareFists;
+        private static ConfigEntry<float> dashForceSwords;
+        private static ConfigEntry<float> dashTimeSwords;
+        private static ConfigEntry<float> dashForceKnives;
+        private static ConfigEntry<float> dashTimeKnives;
+        private static ConfigEntry<float> dashForceClubs;
+        private static ConfigEntry<float> dashTimeClubs;
+        private static ConfigEntry<float> dashForcePolearms;
+        private static ConfigEntry<float> dashTimePolearms;
+        private static ConfigEntry<float> dashForceSpears;
+        private static ConfigEntry<float> dashTimeSpears;
+        private static ConfigEntry<float> dashForceAxes;
+        private static ConfigEntry<float> dashTimeAxes;
+        private static ConfigEntry<float> dashForceBows;
+        private static ConfigEntry<float> dashTimeBows;
+        private static ConfigEntry<float> dashForceElementalMagic;
+        private static ConfigEntry<float> dashTimeElementalMagic;
+        private static ConfigEntry<float> dashForceBloodMagic;
+        private static ConfigEntry<float> dashTimeBloodMagic;
+        private static ConfigEntry<float> dashForceUnarmed;
+        private static ConfigEntry<float> dashTimeUnarmed;
+        private static ConfigEntry<float> dashForcePickaxes;
+        private static ConfigEntry<float> dashTimePickaxes;
+        private static ConfigEntry<float> dashForceCrossbows;
+        private static ConfigEntry<float> dashTimeCrossbows;
 
         internal static Quickstep instance;
 
@@ -99,6 +125,33 @@ namespace Quickstep
             allowUnarmed = config("Weapons", "Allow quickstep with Unarmed", defaultValue: true, "Perform quickstep instead of dodging while using Unarmed");
             allowPickaxes = config("Weapons", "Allow quickstep with Pickaxes", defaultValue: false, "Perform quickstep instead of dodging while using Pickaxes");
             allowCrossbows = config("Weapons", "Allow quickstep with Crossbows", defaultValue: false, "Perform quickstep instead of dodging while using Crossbows");
+
+            dashForceBareFists = config("Weapons - Details", "Dash force with bare fists", defaultValue: 0.0f, "Dash force while not using any weapon. Set 0 to use default value.");
+            dashTimeBareFists = config("Weapons - Details", "Dash time with bare fists", defaultValue: 0.0f, "Dash time while not using any weapon. Set 0 to use default value.");
+            dashForceSwords = config("Weapons - Details", "Dash force with Swords", defaultValue: 0.0f, "Dash force while using Swords. Set 0 to use default value.");
+            dashTimeSwords = config("Weapons - Details", "Dash time with Swords", defaultValue: 0.0f, "Dash time while using Swords. Set 0 to use default value.");
+            dashForceKnives = config("Weapons - Details", "Dash force with Knives", defaultValue: 0.0f, "Dash force while using Knives. Set 0 to use default value.");
+            dashTimeKnives = config("Weapons - Details", "Dash time with Knives", defaultValue: 0.0f, "Dash time while using Knives. Set 0 to use default value.");
+            dashForceClubs = config("Weapons - Details", "Dash force with Clubs", defaultValue: 0.0f, "Dash force while using Clubs. Set 0 to use default value.");
+            dashTimeClubs = config("Weapons - Details", "Dash time with Clubs", defaultValue: 0.0f, "Dash time while using Clubs. Set 0 to use default value.");
+            dashForcePolearms = config("Weapons - Details", "Dash force with Polearms", defaultValue: 0.0f, "Dash force while using Polearms. Set 0 to use default value.");
+            dashTimePolearms = config("Weapons - Details", "Dash time with Polearms", defaultValue: 0.0f, "Dash time while using Polearms. Set 0 to use default value.");
+            dashForceSpears = config("Weapons - Details", "Dash force with Spears", defaultValue: 0.0f, "Dash force while using Spears. Set 0 to use default value.");
+            dashTimeSpears = config("Weapons - Details", "Dash time with Spears", defaultValue: 0.0f, "Dash time while using Spears. Set 0 to use default value.");
+            dashForceAxes = config("Weapons - Details", "Dash force with Axes", defaultValue: 0.0f, "Dash force while using Axes. Set 0 to use default value.");
+            dashTimeAxes = config("Weapons - Details", "Dash time with Axes", defaultValue: 0.0f, "Dash time while using Axes. Set 0 to use default value.");
+            dashForceBows = config("Weapons - Details", "Dash force with Bows", defaultValue: 0.0f, "Dash force while using Bows. Set 0 to use default value.");
+            dashTimeBows = config("Weapons - Details", "Dash time with Bows", defaultValue: 0.0f, "Dash time while using Bows. Set 0 to use default value.");
+            dashForceElementalMagic = config("Weapons - Details", "Dash force with ElementalMagic", defaultValue: 0.0f, "Dash force while using ElementalMagic staff. Set 0 to use default value.");
+            dashTimeElementalMagic = config("Weapons - Details", "Dash time with ElementalMagic", defaultValue: 0.0f, "Dash time while using ElementalMagic staff. Set 0 to use default value.");
+            dashForceBloodMagic = config("Weapons - Details", "Dash force with BloodMagic", defaultValue: 0.0f, "Dash force while using BloodMagic staff. Set 0 to use default value.");
+            dashTimeBloodMagic = config("Weapons - Details", "Dash time with BloodMagic", defaultValue: 0.0f, "Dash time while using BloodMagic staff. Set 0 to use default value.");
+            dashForceUnarmed = config("Weapons - Details", "Dash force with Unarmed", defaultValue: 0.0f, "Dash force while using Unarmed. Set 0 to use default value.");
+            dashTimeUnarmed = config("Weapons - Details", "Dash time with Unarmed", defaultValue: 0.0f, "Dash time while using Unarmed. Set 0 to use default value.");
+            dashForcePickaxes = config("Weapons - Details", "Dash force with Pickaxes", defaultValue: 0.0f, "Dash force while using Pickaxes. Set 0 to use default value.");
+            dashTimePickaxes = config("Weapons - Details", "Dash time with Pickaxes", defaultValue: 0.0f, "Dash time while using Pickaxes. Set 0 to use default value.");
+            dashForceCrossbows = config("Weapons - Details", "Dash force with Crossbows", defaultValue: 0.0f, "Dash force while using Crossbows. Set 0 to use default value.");
+            dashTimeCrossbows = config("Weapons - Details", "Dash time with Crossbows", defaultValue: 0.0f, "Dash time while using Crossbows. Set 0 to use default value.");
         }
 
         ConfigEntry<T> config<T>(string group, string name, T defaultValue, ConfigDescription description, bool synchronizedSetting = true)
@@ -113,7 +166,7 @@ namespace Quickstep
 
         ConfigEntry<T> config<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = true) => config(group, name, defaultValue, new ConfigDescription(description), synchronizedSetting);
 
-        public static IEnumerator Dash(Player player, Vector3 dodgeDir, bool reducedIFrames)
+        public static IEnumerator Dash(Player player, Vector3 dodgeDir, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon)
         {
             isDashed = true;
             bool isCrouching = player.IsCrouching();
@@ -156,16 +209,18 @@ namespace Quickstep
             // Make crouch animation faster for better effect
             player.m_zanim.SetSpeed(speed * 1.5f);
 
-            float m_time = Time.time + dashTime.Value;
+            float dashTimeCurrent = (dashTimeWeapon == 0.0f ? dashTime.Value : dashTimeWeapon);
 
-            Vector3 vector = dodgeDir * dashForce.Value;
+            float m_time = Time.time + dashTimeCurrent;
+
+            Vector3 vector = dodgeDir * (dashForceWeapon == 0.0f ? dashForce.Value : dashForceWeapon);
             vector.y = 0.0f;
 
             while (Time.time < m_time)
             {
                 player.m_body.AddForce(vector, ForceMode.Impulse);
 
-                bool invincibility = (!reducedIFrames) || (m_time - Time.time) >= (dashTime.Value - Mathf.Clamp(dashInvincibilityTime.Value, 0f, dashTime.Value));
+                bool invincibility = (!reducedIFrames) || (m_time - Time.time) >= (dashTimeCurrent - Mathf.Clamp(dashInvincibilityTime.Value, 0f, dashTimeCurrent));
                 // If player have a shield than invincibility frames will be reduced
                 if (player.m_dodgeInvincible && !invincibility)
                 {
@@ -201,8 +256,11 @@ namespace Quickstep
             isDashed = false;
         }
 
-        public static bool AllowQuickstep(Player player)
+        public static bool AllowQuickstep(Player player, out float dashForceWeapon, out float dashTimeWeapon)
         {
+            dashForceWeapon = 0f;
+            dashTimeWeapon = 0f;
+
             if (player == null) 
                 return false;
 
@@ -211,26 +269,70 @@ namespace Quickstep
                 weapon = player.GetLeftItem();
 
             if (weapon == null || weapon.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield)
+            {
+                dashForceWeapon = dashForceBareFists.Value;
+                dashTimeWeapon = dashTimeBareFists.Value;
                 return allowBareFists.Value;
-
+            }
+                
             Skills.SkillType skill = weapon.m_shared.m_skillType;
 
-            return 
-                (allowSwords.Value && skill == Skills.SkillType.Swords) ||
-                (allowKnives.Value && skill == Skills.SkillType.Knives) ||
-                (allowClubs.Value && skill == Skills.SkillType.Clubs) ||
-                (allowPolearms.Value && skill == Skills.SkillType.Polearms) ||
-                (allowSpears.Value && skill == Skills.SkillType.Spears) ||
-                (allowAxes.Value && skill == Skills.SkillType.Axes) ||
-                (allowBows.Value && skill == Skills.SkillType.Bows) ||
-                (allowElementalMagic.Value && skill == Skills.SkillType.ElementalMagic) ||
-                (allowBloodMagic.Value && skill == Skills.SkillType.BloodMagic) ||
-                (allowUnarmed.Value && skill == Skills.SkillType.Unarmed) ||
-                (allowPickaxes.Value && skill == Skills.SkillType.Pickaxes) ||
-                (allowCrossbows.Value && skill == Skills.SkillType.Crossbows);
+            switch (skill)
+            {
+                case Skills.SkillType.Swords:
+                    dashForceWeapon = dashForceSwords.Value;
+                    dashTimeWeapon = dashTimeSwords.Value;
+                    return allowSwords.Value;
+                case Skills.SkillType.Knives:
+                    dashForceWeapon = dashForceKnives.Value;
+                    dashTimeWeapon = dashTimeKnives.Value;
+                    return allowKnives.Value;
+                case Skills.SkillType.Clubs:
+                    dashForceWeapon = dashForceClubs.Value;
+                    dashTimeWeapon = dashTimeClubs.Value;
+                    return allowClubs.Value;
+                case Skills.SkillType.Polearms:
+                    dashForceWeapon = dashForcePolearms.Value;
+                    dashTimeWeapon = dashTimePolearms.Value;
+                    return allowPolearms.Value;
+                case Skills.SkillType.Spears:
+                    dashForceWeapon = dashForceSpears.Value;
+                    dashTimeWeapon = dashTimeSpears.Value;
+                    return allowSpears.Value;
+                case Skills.SkillType.Axes:
+                    dashForceWeapon = dashForceAxes.Value;
+                    dashTimeWeapon = dashTimeAxes.Value;
+                    return allowAxes.Value;
+                case Skills.SkillType.Bows:
+                    dashForceWeapon = dashForceBows.Value;
+                    dashTimeWeapon = dashTimeBows.Value;
+                    return allowBows.Value;
+                case Skills.SkillType.ElementalMagic:
+                    dashForceWeapon = dashForceElementalMagic.Value;
+                    dashTimeWeapon = dashTimeElementalMagic.Value;
+                    return allowElementalMagic.Value;
+                case Skills.SkillType.BloodMagic:
+                    dashForceWeapon = dashForceBloodMagic.Value;
+                    dashTimeWeapon = dashTimeBloodMagic.Value;
+                    return allowBloodMagic.Value;
+                case Skills.SkillType.Unarmed:
+                    dashForceWeapon = dashForceUnarmed.Value;
+                    dashTimeWeapon = dashTimeUnarmed.Value;
+                    return allowUnarmed.Value;
+                case Skills.SkillType.Pickaxes:
+                    dashForceWeapon = dashForcePickaxes.Value;
+                    dashTimeWeapon = dashTimePickaxes.Value;
+                    return allowPickaxes.Value;
+                case Skills.SkillType.Crossbows:
+                    dashForceWeapon = dashForceCrossbows.Value;
+                    dashTimeWeapon = dashTimeCrossbows.Value;
+                    return allowCrossbows.Value;
+            }
+
+            return false;
         }
 
-        public static void PerformQuickstep(Player __instance, float dt, ref float ___m_queuedDodgeTimer, Vector3 ___m_queuedDodgeDir, float stam, bool reducedIFrames)
+        public static void PerformQuickstep(Player __instance, float dt, ref float ___m_queuedDodgeTimer, Vector3 ___m_queuedDodgeDir, float stam, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon)
         {
             ___m_queuedDodgeTimer -= dt;
             if (___m_queuedDodgeTimer > 0f && __instance.IsOnGround() && !__instance.IsDead() && !__instance.InAttack() && !__instance.IsEncumbered() && !__instance.InDodge() && !__instance.IsStaggering() && !isDashed)
@@ -245,13 +347,13 @@ namespace Quickstep
                     if (!__instance.IsCrouching())
                         __instance.m_zanim.SetBool("equipping", true);
 
-                    __instance.StartCoroutine(Dash(__instance, ___m_queuedDodgeDir, reducedIFrames));
-
                     // We deal less noise than dodge(5f)
                     __instance.AddNoise(3f);
                     __instance.UseStamina(stam);
                     __instance.UpdateBodyFriction();
                     __instance.m_dodgeEffects.Create(__instance.transform.position, Quaternion.identity, __instance.transform);
+
+                    __instance.StartCoroutine(Dash(__instance, ___m_queuedDodgeDir, reducedIFrames, dashForceWeapon, dashTimeWeapon));
                 }
                 else
                 {
@@ -267,7 +369,7 @@ namespace Quickstep
             {
                 if (!modEnabled.Value) return true;
 
-                if (!AllowQuickstep(__instance)) return true;
+                if (!AllowQuickstep(__instance, out float dashForceWeapon, out float dashTimeWeapon)) return true;
 
                 // Quickstep use less stamina that dodge
                 float stam = (___m_dodgeStaminaUsage - ___m_dodgeStaminaUsage * ___m_equipmentMovementModifier) * dashStaminaMultiplier.Value;
@@ -275,10 +377,23 @@ namespace Quickstep
                 // Equipped shield reduces ability to perform a dash with full invincibility 
                 bool reducedIFrames = (__instance.GetLeftItem() != null) && __instance.GetLeftItem().m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield;
 
-                PerformQuickstep(__instance, dt, ref ___m_queuedDodgeTimer, ___m_queuedDodgeDir, stam, reducedIFrames);
+                PerformQuickstep(__instance, dt, ref ___m_queuedDodgeTimer, ___m_queuedDodgeDir, stam, reducedIFrames, dashForceWeapon, dashTimeWeapon);
 
                 return false;
 
+            }
+        }
+
+        [HarmonyPatch(typeof(Player), nameof(Player.OnSneaking))]
+        public static class Player_OnSneaking_PreventSneakXP
+        {
+            private static void Prefix(Player __instance, ref float dt)
+            {
+                if (!modEnabled.Value) 
+                    return;
+
+                if (isDashed) 
+                    dt = 0;
             }
         }
 

@@ -21,5 +21,8 @@ Extract Quickstep.dll file to your BepInEx\Plugins\ folder
 
 ## Changelog
 
+v 1.0.1
+* Configurable dash time and force for each weapon type
+
 v 1.0.0
 * Initial release
