@@ -23,6 +23,9 @@ Extract Quickstep.dll file to your BepInEx\Plugins\ folder
 
 ## Changelog
 
+v 1.0.3
+* patch 0.217.22, server sync fix
+
 v 1.0.2
 * patch 0.217.22
 
