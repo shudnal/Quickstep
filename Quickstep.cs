@@ -1,5 +1,4 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
@@ -15,7 +14,7 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.3";
+        const string pluginVersion = "1.0.4";
 
         private Harmony _harmony;
 
@@ -75,6 +74,8 @@ namespace Quickstep
         internal static Quickstep instance;
 
         private static bool isDashed;
+
+        private static WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
 
         private void Awake()
         {
@@ -166,7 +167,7 @@ namespace Quickstep
 
         ConfigEntry<T> config<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = true) => config(group, name, defaultValue, new ConfigDescription(description), synchronizedSetting);
 
-        public static IEnumerator Dash(Player player, Vector3 dodgeDir, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon)
+        public static IEnumerator Dash(Player player, Vector3 dodgeDir, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon, Vector3 currentVel)
         {
             isDashed = true;
             bool isCrouching = player.IsCrouching();
@@ -192,19 +193,19 @@ namespace Quickstep
                 player.m_internalBlockingState = !isBlocking;
                 player.m_nview.GetZDO().Set(ZDOVars.s_isBlockingHash, value: !isBlocking);
                 player.m_zanim.SetBool(Player.s_blocking, value: !isBlocking);
-                yield return new WaitForFixedUpdate();
+                yield return waitForFixedUpdate;
             }
 
             // The quickstep animation is basically nonfinished crouch animation
             player.SetCrouch(!isCrouching);
             player.m_zanim.SetBool(Player.s_crouching, !isCrouching);
             
-            yield return new WaitForFixedUpdate();
+            yield return waitForFixedUpdate;
 
             // Disable equipping animation as we already transitioned to crouch animation
             player.m_zanim.SetBool("equipping", false);
 
-            yield return new WaitForFixedUpdate();
+            yield return waitForFixedUpdate;
 
             // Make crouch animation faster for better effect
             player.m_zanim.SetSpeed(speed * 1.5f);
@@ -232,7 +233,7 @@ namespace Quickstep
             }
 
             // Let body save some velocity after quickstep
-            player.m_body.velocity = Vector3.Lerp(player.m_body.velocity, Vector3.zero, 0.2f);
+            player.m_body.velocity = Vector3.Lerp(player.m_body.velocity, currentVel, 0.5f) * 0.3f;
 
             if (player.m_dodgeInvincible)
             {
@@ -242,7 +243,7 @@ namespace Quickstep
 
             player.m_inDodge = false;
 
-            yield return new WaitForFixedUpdate();
+            yield return waitForFixedUpdate;
 
             // Return crouching state
             player.SetCrouch(isCrouching);
@@ -332,7 +333,7 @@ namespace Quickstep
             return false;
         }
 
-        public static void PerformQuickstep(Player __instance, float dt, ref float ___m_queuedDodgeTimer, Vector3 ___m_queuedDodgeDir, float stam, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon)
+        public static void PerformQuickstep(Player __instance, float dt, ref float ___m_queuedDodgeTimer, Vector3 ___m_queuedDodgeDir, float stam, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon, Vector3 currentVel)
         {
             ___m_queuedDodgeTimer -= dt;
             if (___m_queuedDodgeTimer > 0f && __instance.IsOnGround() && !__instance.IsDead() && !__instance.InAttack() && !__instance.IsEncumbered() && !__instance.InDodge() && !__instance.IsStaggering() && !isDashed)
@@ -353,7 +354,7 @@ namespace Quickstep
                     __instance.UpdateBodyFriction();
                     __instance.m_dodgeEffects.Create(__instance.transform.position, Quaternion.identity, __instance.transform);
 
-                    __instance.StartCoroutine(Dash(__instance, ___m_queuedDodgeDir, reducedIFrames, dashForceWeapon, dashTimeWeapon));
+                    __instance.StartCoroutine(Dash(__instance, ___m_queuedDodgeDir, reducedIFrames, dashForceWeapon, dashTimeWeapon, currentVel));
                 }
                 else
                 {
@@ -377,10 +378,9 @@ namespace Quickstep
                 // Equipped shield reduces ability to perform a dash with full invincibility 
                 bool reducedIFrames = (__instance.GetLeftItem() != null) && __instance.GetLeftItem().m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield;
 
-                PerformQuickstep(__instance, dt, ref ___m_queuedDodgeTimer, ___m_queuedDodgeDir, stam, reducedIFrames, dashForceWeapon, dashTimeWeapon);
+                PerformQuickstep(__instance, dt, ref ___m_queuedDodgeTimer, ___m_queuedDodgeDir, stam, reducedIFrames, dashForceWeapon, dashTimeWeapon, __instance.m_currentVel);
 
                 return false;
-
             }
         }
 

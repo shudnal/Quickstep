@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /thunderstore/Quickstep.zip
 /thunderstore/Quickstep.dll
+/package/thunderstore/Quickstep.zip
+/package/thunderstore/Quickstep/Quickstep.dll
