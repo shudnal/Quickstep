@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using BepInEx;
-using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -14,7 +13,7 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.4";
+        const string pluginVersion = "1.0.5";
 
         private Harmony _harmony;
 
@@ -366,19 +365,23 @@ namespace Quickstep
         [HarmonyPatch(typeof(Player), nameof(Player.UpdateDodge))]
         public static class Player_UpdateDodge_Quickstep
         {
-            private static bool Prefix(Player __instance, float dt, ref float ___m_queuedDodgeTimer, float ___m_dodgeStaminaUsage, float ___m_equipmentMovementModifier, Vector3 ___m_queuedDodgeDir)
+            private static bool Prefix(Player __instance, float dt, ref float ___m_queuedDodgeTimer)
             {
-                if (!modEnabled.Value) return true;
+                if (!modEnabled.Value)
+                    return true;
 
-                if (!AllowQuickstep(__instance, out float dashForceWeapon, out float dashTimeWeapon)) return true;
+                if (!AllowQuickstep(__instance, out float dashForceWeapon, out float dashTimeWeapon))
+                    return true;
 
                 // Quickstep use less stamina that dodge
-                float stam = (___m_dodgeStaminaUsage - ___m_dodgeStaminaUsage * ___m_equipmentMovementModifier) * dashStaminaMultiplier.Value;
+                float staminaUse = __instance.m_dodgeStaminaUsage;
+                staminaUse = staminaUse - staminaUse * __instance.GetEquipmentMovementModifier() + staminaUse * __instance.GetEquipmentDodgeStaminaModifier();
+                staminaUse *= dashStaminaMultiplier.Value;
 
                 // Equipped shield reduces ability to perform a dash with full invincibility 
                 bool reducedIFrames = (__instance.GetLeftItem() != null) && __instance.GetLeftItem().m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield;
 
-                PerformQuickstep(__instance, dt, ref ___m_queuedDodgeTimer, ___m_queuedDodgeDir, stam, reducedIFrames, dashForceWeapon, dashTimeWeapon, __instance.m_currentVel);
+                PerformQuickstep(__instance, dt, ref ___m_queuedDodgeTimer, __instance.m_queuedDodgeDir, staminaUse, reducedIFrames, dashForceWeapon, dashTimeWeapon, __instance.m_currentVel);
 
                 return false;
             }

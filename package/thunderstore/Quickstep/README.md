@@ -16,5 +16,10 @@ If you perform quickstep with shield equipped then invincibility frames will be 
 ## Installation (manual)
 Extract Quickstep.dll file to your BepInEx\Plugins\ folder
 
+## Configurating
+The best way to handle configs is [Configuration Manager](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/).
+
+Or [Official BepInEx Configuration Manager](https://valheim.thunderstore.io/package/Azumatt/Official_BepInEx_ConfigurationManager/).
+
 ## Mirrors
 [Nexus](https://www.nexusmods.com/valheim/mods/2547)

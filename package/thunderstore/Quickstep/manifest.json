@@ -1,6 +1,6 @@
 {
   "name": "Quickstep",
-  "version_number": "1.0.4",
+  "version_number": "1.0.5",
   "website_url": "https://github.com/shudnal/Quickstep",
   "description": "Replace dodging roll animation with quickstep.",
   "dependencies": ["denikson-BepInExPack_Valheim-5.4.2202"]
