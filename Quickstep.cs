@@ -1,10 +1,11 @@
-﻿using System.Reflection;
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 using System.Collections;
 using ServerSync;
+using System.Collections.Generic;
+using System;
 
 namespace Quickstep
 {
@@ -13,9 +14,9 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.5";
+        const string pluginVersion = "1.0.6";
 
-        private Harmony _harmony;
+        private readonly Harmony harmony = new Harmony(pluginID);
 
         internal static readonly ConfigSync configSync = new ConfigSync(pluginID) { DisplayName = pluginName, CurrentVersion = pluginVersion, MinimumRequiredVersion = pluginVersion };
 
@@ -42,6 +43,7 @@ namespace Quickstep
         private static ConfigEntry<bool> allowUnarmed;
         private static ConfigEntry<bool> allowPickaxes;
         private static ConfigEntry<bool> allowCrossbows;
+        private static ConfigEntry<bool> allowCustomPrefabs;
 
         private static ConfigEntry<float> dashForceBareFists;
         private static ConfigEntry<float> dashTimeBareFists;
@@ -69,27 +71,49 @@ namespace Quickstep
         private static ConfigEntry<float> dashTimePickaxes;
         private static ConfigEntry<float> dashForceCrossbows;
         private static ConfigEntry<float> dashTimeCrossbows;
+        private static ConfigEntry<float> dashForceCustomPrefabs;
+        private static ConfigEntry<float> dashTimeCustomPrefabs;
+
+        private static ConfigEntry<string> prefabListUseBareFistsConfig;
+        private static ConfigEntry<string> prefabListUseSwordsConfig;
+        private static ConfigEntry<string> prefabListUseKnivesConfig;
+        private static ConfigEntry<string> prefabListUseClubsConfig;
+        private static ConfigEntry<string> prefabListUsePolearmsConfig;
+        private static ConfigEntry<string> prefabListUseSpearsConfig;
+        private static ConfigEntry<string> prefabListUseAxesConfig;
+        private static ConfigEntry<string> prefabListUseBowsConfig;
+        private static ConfigEntry<string> prefabListUseElementalMagicConfig;
+        private static ConfigEntry<string> prefabListUseBloodMagicConfig;
+        private static ConfigEntry<string> prefabListUseUnarmedConfig;
+        private static ConfigEntry<string> prefabListUsePickaxesConfig;
+        private static ConfigEntry<string> prefabListUseCrossbowsConfig;
+        private static ConfigEntry<string> prefabListUseCustomPrefabsConfig;
 
         internal static Quickstep instance;
 
+        private static Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>> customPrefabs = new Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>>();
+
         private static bool isDashed;
 
-        private static WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
+        private static readonly WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
+        private static readonly WaitForSeconds waitFor001Sec = new WaitForSeconds(0.01f);
 
         private void Awake()
         {
-            _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), pluginID);
+            harmony.PatchAll();
 
             instance = this;
 
             ConfigInit();
             _ = configSync.AddLockingConfigEntry(configLocked);
+
+            Game.isModded = true;
         }
 
         private void OnDestroy()
         {
             Config.Save();
-            _harmony?.UnpatchSelf();
+            harmony?.UnpatchSelf();
         }
 
         public static void LogInfo(object data)
@@ -125,6 +149,7 @@ namespace Quickstep
             allowUnarmed = config("Weapons", "Allow quickstep with Unarmed", defaultValue: true, "Perform quickstep instead of dodging while using Unarmed");
             allowPickaxes = config("Weapons", "Allow quickstep with Pickaxes", defaultValue: false, "Perform quickstep instead of dodging while using Pickaxes");
             allowCrossbows = config("Weapons", "Allow quickstep with Crossbows", defaultValue: false, "Perform quickstep instead of dodging while using Crossbows");
+            allowCustomPrefabs = config("Weapons", "Allow quickstep with custom weapon list", defaultValue: false, "Perform quickstep instead of dodging while using weapon from list");
 
             dashForceBareFists = config("Weapons - Details", "Dash force with bare fists", defaultValue: 0.0f, "Dash force while not using any weapon. Set 0 to use default value.");
             dashTimeBareFists = config("Weapons - Details", "Dash time with bare fists", defaultValue: 0.0f, "Dash time while not using any weapon. Set 0 to use default value.");
@@ -152,6 +177,52 @@ namespace Quickstep
             dashTimePickaxes = config("Weapons - Details", "Dash time with Pickaxes", defaultValue: 0.0f, "Dash time while using Pickaxes. Set 0 to use default value.");
             dashForceCrossbows = config("Weapons - Details", "Dash force with Crossbows", defaultValue: 0.0f, "Dash force while using Crossbows. Set 0 to use default value.");
             dashTimeCrossbows = config("Weapons - Details", "Dash time with Crossbows", defaultValue: 0.0f, "Dash time while using Crossbows. Set 0 to use default value.");
+            dashForceCustomPrefabs = config("Weapons - Details", "Dash force with Custom prefabs", defaultValue: 0.0f, "Dash force while using prefabs from custom list. Set 0 to use default value.");
+            dashTimeCustomPrefabs = config("Weapons - Details", "Dash time with Custom prefabs", defaultValue: 0.0f, "Dash time while using prefabs from custom list. Set 0 to use default value.");
+
+            prefabListUseBareFistsConfig = config("Weapons - Prefabs", "Prefab list to use Bare fists config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from BareFists config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseSwordsConfig = config("Weapons - Prefabs", "Prefab list to use Swords config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Swords config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseKnivesConfig = config("Weapons - Prefabs", "Prefab list to use Knives config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Knives config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseClubsConfig = config("Weapons - Prefabs", "Prefab list to use Clubs config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Clubs config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUsePolearmsConfig = config("Weapons - Prefabs", "Prefab list to use Polearms config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Polearms config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseSpearsConfig = config("Weapons - Prefabs", "Prefab list to use Spears config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Spears config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseAxesConfig = config("Weapons - Prefabs", "Prefab list to use Axes config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Axes config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseBowsConfig = config("Weapons - Prefabs", "Prefab list to use Bows config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Bows config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseElementalMagicConfig = config("Weapons - Prefabs", "Prefab list to use ElementalMagic config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from ElementalMagic config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseBloodMagicConfig = config("Weapons - Prefabs", "Prefab list to use BloodMagic config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from BloodMagic config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseUnarmedConfig = config("Weapons - Prefabs", "Prefab list to use Unarmed config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Unarmed config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUsePickaxesConfig = config("Weapons - Prefabs", "Prefab list to use Pickaxes config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Pickaxes config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseCrossbowsConfig = config("Weapons - Prefabs", "Prefab list to use Crossbows config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Crossbows config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+            prefabListUseCustomPrefabsConfig = config("Weapons - Prefabs", "Prefab list to use Custom prefabs config", defaultValue: "",
+                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from CustomPrefabs config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
+
+            prefabListUseBareFistsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseSwordsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseKnivesConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseClubsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUsePolearmsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseSpearsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseAxesConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseBowsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseElementalMagicConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseBloodMagicConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseUnarmedConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUsePickaxesConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseCrossbowsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
+            prefabListUseCustomPrefabsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
         }
 
         ConfigEntry<T> config<T>(string group, string name, T defaultValue, ConfigDescription description, bool synchronizedSetting = true)
@@ -165,6 +236,32 @@ namespace Quickstep
         }
 
         ConfigEntry<T> config<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = true) => config(group, name, defaultValue, new ConfigDescription(description), synchronizedSetting);
+
+        private static void UpdateCustomPrefabs()
+        {
+            customPrefabs.Clear();
+
+            AddToCustomConfigs(prefabListUseBareFistsConfig, dashForceBareFists, dashTimeBareFists);
+            AddToCustomConfigs(prefabListUseSwordsConfig, dashForceSwords, dashTimeSwords);
+            AddToCustomConfigs(prefabListUseKnivesConfig, dashForceKnives, dashTimeKnives);
+            AddToCustomConfigs(prefabListUseClubsConfig, dashForceClubs, dashTimeClubs);
+            AddToCustomConfigs(prefabListUsePolearmsConfig, dashForcePolearms, dashTimePolearms);
+            AddToCustomConfigs(prefabListUseSpearsConfig, dashForceSpears, dashTimeSpears);
+            AddToCustomConfigs(prefabListUseAxesConfig, dashForceAxes, dashTimeAxes);
+            AddToCustomConfigs(prefabListUseBowsConfig, dashForceBows, dashTimeBows);
+            AddToCustomConfigs(prefabListUseElementalMagicConfig, dashForceElementalMagic, dashTimeElementalMagic);
+            AddToCustomConfigs(prefabListUseBloodMagicConfig, dashForceBloodMagic, dashTimeBloodMagic);
+            AddToCustomConfigs(prefabListUseUnarmedConfig, dashForceUnarmed, dashTimeUnarmed);
+            AddToCustomConfigs(prefabListUsePickaxesConfig, dashForcePickaxes, dashTimePickaxes);
+            AddToCustomConfigs(prefabListUseCrossbowsConfig, dashForceCrossbows, dashTimeCrossbows);
+            AddToCustomConfigs(prefabListUseCustomPrefabsConfig, dashForceCustomPrefabs, dashTimeCustomPrefabs);
+
+            static void AddToCustomConfigs(ConfigEntry<string> customConfigs, ConfigEntry<float> dashForce, ConfigEntry<float> dashTime)
+            {
+                foreach (string prefabName in customConfigs.Value.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries))
+                    customPrefabs.Add(prefabName, Tuple.Create(dashForce, dashTime));
+            }
+        }
 
         public static IEnumerator Dash(Player player, Vector3 dodgeDir, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon, Vector3 currentVel)
         {
@@ -228,7 +325,7 @@ namespace Quickstep
                     player.m_nview.GetZDO().Set(ZDOVars.s_dodgeinv, player.m_dodgeInvincible);
                 }
                 
-                yield return new WaitForSeconds(0.01f);
+                yield return waitFor001Sec;
             }
 
             // Let body save some velocity after quickstep
@@ -264,9 +361,23 @@ namespace Quickstep
             if (player == null) 
                 return false;
 
-            ItemDrop.ItemData weapon = player.GetRightItem();
-            if (weapon == null)
-                weapon = player.GetLeftItem();
+            ItemDrop.ItemData weapon = player.GetRightItem() ?? player.GetLeftItem();
+            if (weapon != null)
+            {
+                if (weapon.m_dropPrefab != null && customPrefabs.TryGetValue(weapon.m_dropPrefab.name, out Tuple<ConfigEntry<float>, ConfigEntry<float>> tuple1))
+                {
+                    dashForceWeapon = tuple1.Item1.Value;
+                    dashTimeWeapon = tuple1.Item2.Value;
+                    return allowCustomPrefabs.Value;
+                }
+
+                if (customPrefabs.TryGetValue(weapon.m_shared.m_name, out Tuple<ConfigEntry<float>, ConfigEntry<float>> tuple2))
+                {
+                    dashForceWeapon = tuple2.Item1.Value;
+                    dashTimeWeapon = tuple2.Item2.Value;
+                    return allowCustomPrefabs.Value;
+                }
+            }
 
             if (weapon == null || weapon.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield)
             {

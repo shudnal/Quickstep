@@ -1,3 +1,6 @@
+# 1.0.6
+* Configuration override for distinct prefabs
+
 # 1.0.5
 * Ashlands
 
