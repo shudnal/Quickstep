@@ -1,3 +1,6 @@
+# 1.0.7
+* option to perform regular dodge on double click
+
 # 1.0.6
 * Configuration override for distinct prefabs
 

@@ -14,7 +14,7 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.6";
+        const string pluginVersion = "1.0.7";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -29,6 +29,7 @@ namespace Quickstep
         private static ConfigEntry<float> dashInvincibilityTime;
         private static ConfigEntry<float> dashCooldownTime;
         private static ConfigEntry<float> dashStaminaMultiplier;
+        private static ConfigEntry<bool> dodgeOnDoubleClick;
 
         private static ConfigEntry<bool> allowBareFists;
         private static ConfigEntry<bool> allowSwords;
@@ -91,9 +92,10 @@ namespace Quickstep
 
         internal static Quickstep instance;
 
-        private static Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>> customPrefabs = new Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>>();
+        private static readonly Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>> customPrefabs = new Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>>();
 
         private static bool isDashed;
+        private static bool skipToDodge;
 
         private static readonly WaitForFixedUpdate waitForFixedUpdate = new WaitForFixedUpdate();
         private static readonly WaitForSeconds waitFor001Sec = new WaitForSeconds(0.01f);
@@ -130,11 +132,13 @@ namespace Quickstep
             configLocked = config("General", "Lock Configuration", defaultValue: true, "Configuration is locked and can be changed by server admins only.");
             loggingEnabled = config("General", "Logging enabled", defaultValue: false, "Enable logging for debug events. [Not Synced with Server]", false);
 
+            
             dashForce = config("Quickstep", "Dash force", defaultValue: 50.0f, "Quickstep force factor.");
             dashTime = config("Quickstep", "Dash time", defaultValue: 0.25f, "Quickstep time.");
             dashInvincibilityTime = config("Quickstep", "Invincibility time with shield", defaultValue: 0.15f, "Quickstep invincibility time when you're equipping a shield. If you're not equipping a shield quickstep grant invincibility for all its duration.");
             dashCooldownTime = config("Quickstep", "Quickstep cooldown", defaultValue: 0.5f, "Time in seconds you can not dash again.");
             dashStaminaMultiplier = config("Quickstep", "Stamina usage multiplier", defaultValue: 0.6f, "Multiplier of how much less stamina you will use on quickstep than dodge stamina usage.");
+            dodgeOnDoubleClick = config("Quickstep", "Dodge on double click", defaultValue: true, "Double click dodge button to perform regular dodge.");
 
             allowBareFists = config("Weapons", "Allow quickstep with bare fists", defaultValue: false, "Perform quickstep instead of dodging while not using any weapon");
             allowSwords = config("Weapons", "Allow quickstep with Swords", defaultValue: false, "Perform quickstep instead of dodging while using Swords");
@@ -180,35 +184,21 @@ namespace Quickstep
             dashForceCustomPrefabs = config("Weapons - Details", "Dash force with Custom prefabs", defaultValue: 0.0f, "Dash force while using prefabs from custom list. Set 0 to use default value.");
             dashTimeCustomPrefabs = config("Weapons - Details", "Dash time with Custom prefabs", defaultValue: 0.0f, "Dash time while using prefabs from custom list. Set 0 to use default value.");
 
-            prefabListUseBareFistsConfig = config("Weapons - Prefabs", "Prefab list to use Bare fists config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from BareFists config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseSwordsConfig = config("Weapons - Prefabs", "Prefab list to use Swords config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Swords config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseKnivesConfig = config("Weapons - Prefabs", "Prefab list to use Knives config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Knives config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseClubsConfig = config("Weapons - Prefabs", "Prefab list to use Clubs config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Clubs config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUsePolearmsConfig = config("Weapons - Prefabs", "Prefab list to use Polearms config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Polearms config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseSpearsConfig = config("Weapons - Prefabs", "Prefab list to use Spears config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Spears config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseAxesConfig = config("Weapons - Prefabs", "Prefab list to use Axes config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Axes config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseBowsConfig = config("Weapons - Prefabs", "Prefab list to use Bows config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Bows config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseElementalMagicConfig = config("Weapons - Prefabs", "Prefab list to use ElementalMagic config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from ElementalMagic config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseBloodMagicConfig = config("Weapons - Prefabs", "Prefab list to use BloodMagic config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from BloodMagic config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseUnarmedConfig = config("Weapons - Prefabs", "Prefab list to use Unarmed config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Unarmed config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUsePickaxesConfig = config("Weapons - Prefabs", "Prefab list to use Pickaxes config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Pickaxes config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseCrossbowsConfig = config("Weapons - Prefabs", "Prefab list to use Crossbows config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from Crossbows config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-            prefabListUseCustomPrefabsConfig = config("Weapons - Prefabs", "Prefab list to use Custom prefabs config", defaultValue: "",
-                       new ConfigDescription("Comma-separated list of prefabs to use dash force and time from CustomPrefabs config", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }));
-
+            prefabListUseBareFistsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Bare fists config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from BareFists config");
+            prefabListUseSwordsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Swords config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Swords config");
+            prefabListUseKnivesConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Knives config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Knives config");
+            prefabListUseClubsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Clubs config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Clubs config");
+            prefabListUsePolearmsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Polearms config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Polearms config");
+            prefabListUseSpearsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Spears config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Spears config");
+            prefabListUseAxesConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Axes config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Axes config");
+            prefabListUseBowsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Bows config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Bows config");
+            prefabListUseElementalMagicConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use ElementalMagic config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from ElementalMagic config");
+            prefabListUseBloodMagicConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use BloodMagic config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from BloodMagic config");
+            prefabListUseUnarmedConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Unarmed config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Unarmed config");
+            prefabListUsePickaxesConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Pickaxes config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Pickaxes config");
+            prefabListUseCrossbowsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Crossbows config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Crossbows config");
+            prefabListUseCustomPrefabsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Custom prefabs config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from CustomPrefabs config");
+            
             prefabListUseBareFistsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
             prefabListUseSwordsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
             prefabListUseKnivesConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
@@ -236,6 +226,9 @@ namespace Quickstep
         }
 
         ConfigEntry<T> config<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = true) => config(group, name, defaultValue, new ConfigDescription(description), synchronizedSetting);
+
+        ConfigEntry<T> configSeparatedStrings<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = true) => config(group, name, defaultValue,
+                       new ConfigDescription(description, null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }), synchronizedSetting);
 
         private static void UpdateCustomPrefabs()
         {
@@ -268,6 +261,7 @@ namespace Quickstep
             isDashed = true;
             bool isCrouching = player.IsCrouching();
             bool isBlocking = player.IsBlocking();
+            float dodgeStaminaUsage = player.m_dodgeStaminaUsage;
 
             player.ClearActionQueue();
 
@@ -286,22 +280,30 @@ namespace Quickstep
             if (isBlocking)
             {
                 // Disable blocking state to not registering hits while dodging
-                player.m_internalBlockingState = !isBlocking;
-                player.m_nview.GetZDO().Set(ZDOVars.s_isBlockingHash, value: !isBlocking);
-                player.m_zanim.SetBool(Player.s_blocking, value: !isBlocking);
+                player.m_internalBlockingState = false;
+                player.m_nview.GetZDO().Set(ZDOVars.s_isBlockingHash, value: false);
+                player.m_zanim.SetBool(Humanoid.s_blocking, value: false);
+
+                if (!SkipToDodge())
+                    yield return waitForFixedUpdate;
+            }
+
+            if (!SkipToDodge())
+            {
+                // The quickstep animation is basically nonfinished crouch animation
+                player.SetCrouch(!isCrouching);
+                player.m_zanim.SetBool(Player.s_crouching, !isCrouching);
+
                 yield return waitForFixedUpdate;
             }
 
-            // The quickstep animation is basically nonfinished crouch animation
-            player.SetCrouch(!isCrouching);
-            player.m_zanim.SetBool(Player.s_crouching, !isCrouching);
-            
-            yield return waitForFixedUpdate;
+            if (!SkipToDodge())
+            {
+                // Disable equipping animation as we already transitioned to crouch animation
+                player.m_zanim.SetBool("equipping", false);
 
-            // Disable equipping animation as we already transitioned to crouch animation
-            player.m_zanim.SetBool("equipping", false);
-
-            yield return waitForFixedUpdate;
+                yield return waitForFixedUpdate;
+            }
 
             // Make crouch animation faster for better effect
             player.m_zanim.SetSpeed(speed * 1.5f);
@@ -313,7 +315,8 @@ namespace Quickstep
             Vector3 vector = dodgeDir * (dashForceWeapon == 0.0f ? dashForce.Value : dashForceWeapon);
             vector.y = 0.0f;
 
-            while (Time.time < m_time)
+            // if regular dodge 
+            while (Time.time < m_time && !SkipToDodge())
             {
                 player.m_body.AddForce(vector, ForceMode.Impulse);
 
@@ -324,7 +327,7 @@ namespace Quickstep
                     player.m_dodgeInvincible = invincibility;
                     player.m_nview.GetZDO().Set(ZDOVars.s_dodgeinv, player.m_dodgeInvincible);
                 }
-                
+
                 yield return waitFor001Sec;
             }
 
@@ -339,18 +342,57 @@ namespace Quickstep
 
             player.m_inDodge = false;
 
-            yield return waitForFixedUpdate;
-
             // Return crouching state
             player.SetCrouch(isCrouching);
             player.m_zanim.SetBool(Player.s_crouching, isCrouching);
+
+            if (!skipToDodge)
+                yield return waitForFixedUpdate;
 
             // Return animation speed
             player.m_zanim.SetSpeed(speed);
 
             yield return new WaitForSeconds(dashCooldownTime.Value);
 
+            if (skipToDodge)
+                yield return new WaitWhile(() => player.InDodge());
+            
             isDashed = false;
+            skipToDodge = false;
+            player.m_dodgeStaminaUsage = dodgeStaminaUsage;
+
+            bool SkipToDodge()
+            {
+                if (skipToDodge = dodgeOnDoubleClick.Value && player.m_queuedDodgeTimer > 0f)
+                    player.m_dodgeStaminaUsage = 0;
+
+                return skipToDodge;
+            }
+        }
+
+        [HarmonyPatch(typeof(Player), nameof(Player.UpdateDodge))]
+        public static class Player_UpdateDodge_Quickstep
+        {
+            private static bool Prefix(Player __instance, float dt)
+            {
+                if (!modEnabled.Value)
+                    return true;
+
+                return CheckQuickstep(__instance, dt);
+            }
+        }
+
+        public static bool CheckQuickstep(Player player, float dt)
+        {
+            if (skipToDodge)
+                return true;
+
+            if (!AllowQuickstep(player, out float dashForceWeapon, out float dashTimeWeapon))
+                return true;
+
+            UpdateQuickstep(player, dt, dashForceWeapon, dashTimeWeapon);
+
+            return false;
         }
 
         public static bool AllowQuickstep(Player player, out float dashForceWeapon, out float dashTimeWeapon)
@@ -443,65 +485,51 @@ namespace Quickstep
             return false;
         }
 
-        public static void PerformQuickstep(Player __instance, float dt, ref float ___m_queuedDodgeTimer, Vector3 ___m_queuedDodgeDir, float stam, bool reducedIFrames, float dashForceWeapon, float dashTimeWeapon, Vector3 currentVel)
+        public static void UpdateQuickstep(Player player, float dt, float dashForceWeapon, float dashTimeWeapon)
         {
-            ___m_queuedDodgeTimer -= dt;
-            if (___m_queuedDodgeTimer > 0f && __instance.IsOnGround() && !__instance.IsDead() && !__instance.InAttack() && !__instance.IsEncumbered() && !__instance.InDodge() && !__instance.IsStaggering() && !isDashed)
+            player.m_queuedDodgeTimer -= dt;
+            if (player.m_queuedDodgeTimer > 0f && player.IsOnGround() && !player.IsDead() && !player.InAttack() && !player.IsEncumbered() && !player.InDodge() && !player.IsStaggering() && !isDashed)
             {
-                if (__instance.HaveStamina(stam))
-                {
-                    ___m_queuedDodgeTimer = 0f;
+                float staminaUse = player.m_dodgeStaminaUsage;
+                staminaUse = staminaUse - staminaUse * player.GetEquipmentMovementModifier() + staminaUse * player.GetEquipmentDodgeStaminaModifier();
+                player.m_seman.ModifyDodgeStaminaUsage(staminaUse, ref staminaUse);
+                
+                // Quickstep use less stamina that dodge
+                staminaUse *= dashStaminaMultiplier.Value;
 
-                    // If player is not crouching then Crouching animation does need a workaround
-                    // The Blocking animation does not allow transition to Crouching animation which is an essential visual part of quickstep
-                    // So a fast transition to the Equipping animation allows us to deal with it
-                    if (!__instance.IsCrouching())
-                        __instance.m_zanim.SetBool("equipping", true);
-
-                    // We deal less noise than dodge(5f)
-                    __instance.AddNoise(3f);
-                    __instance.UseStamina(stam);
-                    __instance.UpdateBodyFriction();
-                    __instance.m_dodgeEffects.Create(__instance.transform.position, Quaternion.identity, __instance.transform);
-
-                    __instance.StartCoroutine(Dash(__instance, ___m_queuedDodgeDir, reducedIFrames, dashForceWeapon, dashTimeWeapon, currentVel));
-                }
+                if (player.HaveStamina(staminaUse))
+                    PerformQuickstep(player, staminaUse, dashForceWeapon, dashTimeWeapon);
                 else
-                {
                     Hud.instance.StaminaBarEmptyFlash();
-                }
             }
         }
 
-        [HarmonyPatch(typeof(Player), nameof(Player.UpdateDodge))]
-        public static class Player_UpdateDodge_Quickstep
+        public static void PerformQuickstep(Player player, float staminaUse, float dashForceWeapon, float dashTimeWeapon)
         {
-            private static bool Prefix(Player __instance, float dt, ref float ___m_queuedDodgeTimer)
-            {
-                if (!modEnabled.Value)
-                    return true;
+            player.m_queuedDodgeTimer = 0f;
 
-                if (!AllowQuickstep(__instance, out float dashForceWeapon, out float dashTimeWeapon))
-                    return true;
+            // Equipped shield reduces ability to perform a dash with full invincibility 
+            bool reducedIFrames = (player.GetLeftItem() != null) && player.GetLeftItem().m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield;
 
-                // Quickstep use less stamina that dodge
-                float staminaUse = __instance.m_dodgeStaminaUsage;
-                staminaUse = staminaUse - staminaUse * __instance.GetEquipmentMovementModifier() + staminaUse * __instance.GetEquipmentDodgeStaminaModifier();
-                staminaUse *= dashStaminaMultiplier.Value;
+            // If player is not crouching then Crouching animation does need a workaround
+            // The Blocking animation does not allow transition to Crouching animation which is an essential visual part of quickstep
+            // So a fast transition to the Equipping animation allows us to deal with it
+            if (!player.IsCrouching())
+                player.m_zanim.SetBool("equipping", true);
 
-                // Equipped shield reduces ability to perform a dash with full invincibility 
-                bool reducedIFrames = (__instance.GetLeftItem() != null) && __instance.GetLeftItem().m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield;
+            // We deal less noise than dodge(5f)
+            player.AddNoise(3f);
+            player.UseStamina(staminaUse);
+            player.UpdateBodyFriction();
+            player.m_dodgeEffects.Create(player.transform.position, Quaternion.identity, player.transform);
 
-                PerformQuickstep(__instance, dt, ref ___m_queuedDodgeTimer, __instance.m_queuedDodgeDir, staminaUse, reducedIFrames, dashForceWeapon, dashTimeWeapon, __instance.m_currentVel);
-
-                return false;
-            }
+            player.StartCoroutine(Dash(player, player.m_queuedDodgeDir, reducedIFrames, dashForceWeapon, dashTimeWeapon, player.m_currentVel));
         }
 
         [HarmonyPatch(typeof(Player), nameof(Player.OnSneaking))]
         public static class Player_OnSneaking_PreventSneakXP
         {
-            private static void Prefix(Player __instance, ref float dt)
+            private static void Prefix(ref float dt)
             {
                 if (!modEnabled.Value) 
                     return;
@@ -510,7 +538,6 @@ namespace Quickstep
                     dt = 0;
             }
         }
-
     }
 
 }
