@@ -1,3 +1,6 @@
+# 1.0.8
+* fixed custom prefab list loading
+
 # 1.0.7
 * option to perform regular dodge on double click
 

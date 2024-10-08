@@ -14,7 +14,7 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.7";
+        const string pluginVersion = "1.0.8";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -538,6 +538,17 @@ namespace Quickstep
                     dt = 0;
             }
         }
-    }
 
+        [HarmonyPatch(typeof(ZoneSystem), nameof(ZoneSystem.Start))]
+        public static class ZoneSystem_Start_UpdateCustomPrefabList
+        {
+            private static void Prefix()
+            {
+                if (!modEnabled.Value)
+                    return;
+
+                UpdateCustomPrefabs();
+            }
+        }
+    }
 }
