@@ -14,7 +14,7 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.8";
+        const string pluginVersion = "1.0.9";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
