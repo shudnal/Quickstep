@@ -14,7 +14,7 @@ namespace Quickstep
     {
         const string pluginID = "shudnal.Quickstep";
         const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.9";
+        const string pluginVersion = "1.0.10";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -268,6 +268,7 @@ namespace Quickstep
             // Initiate dodging state to prevent damage
             player.m_inDodge = true;
             player.m_dodgeInvincible = true;
+            player.m_dodgeInvincibleCached = true;
             player.m_nview.GetZDO().Set(ZDOVars.s_dodgeinv, player.m_dodgeInvincible);
 
             float speed = player.m_zanim.m_animator.speed;
@@ -322,9 +323,10 @@ namespace Quickstep
 
                 bool invincibility = (!reducedIFrames) || (m_time - Time.time) >= (dashTimeCurrent - Mathf.Clamp(dashInvincibilityTime.Value, 0f, dashTimeCurrent));
                 // If player have a shield than invincibility frames will be reduced
-                if (player.m_dodgeInvincible && !invincibility)
+                if ((player.m_dodgeInvincible || player.m_dodgeInvincibleCached) && !invincibility)
                 {
                     player.m_dodgeInvincible = invincibility;
+                    player.m_dodgeInvincibleCached = invincibility;
                     player.m_nview.GetZDO().Set(ZDOVars.s_dodgeinv, player.m_dodgeInvincible);
                 }
 
@@ -337,6 +339,7 @@ namespace Quickstep
             if (player.m_dodgeInvincible)
             {
                 player.m_dodgeInvincible = false;
+                player.m_dodgeInvincibleCached = false;
                 player.m_nview.GetZDO().Set(ZDOVars.s_dodgeinv, player.m_dodgeInvincible);
             }
 

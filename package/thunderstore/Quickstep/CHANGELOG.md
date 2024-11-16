@@ -1,3 +1,6 @@
+# 1.0.10
+* invincibility frames fixed
+
 # 1.0.9
 * bog witch
 
