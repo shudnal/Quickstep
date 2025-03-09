@@ -12,9 +12,9 @@ namespace Quickstep
     [BepInPlugin(pluginID, pluginName, pluginVersion)]
     public class Quickstep : BaseUnityPlugin
     {
-        const string pluginID = "shudnal.Quickstep";
-        const string pluginName = "Quickstep";
-        const string pluginVersion = "1.0.10";
+        public const string pluginID = "shudnal.Quickstep";
+        public const string pluginName = "Quickstep";
+        public const string pluginVersion = "1.0.11";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 

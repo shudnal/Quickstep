@@ -1,3 +1,7 @@
+# 1.0.11
+* patch 0.220.3
+* ServerSync updated
+
 # 1.0.10
 * invincibility frames fixed
 
