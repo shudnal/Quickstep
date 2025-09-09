@@ -7,11 +7,14 @@ But you can enable whatever weapon class you want.
 
 If you perform quickstep with shield equipped then invincibility frames will be lowered (configurable) and by default it is first 60% of dash time.
 
+By default quickstep is restricted with tower shields.
+
 ## Features:
 * set dash time and force if you're not satisfied with default behaviour
-* set invincibility time for quickstep with shield (by default 150 milliseconds of 250 milliseconds of dash)
+* set invincibility time for quickstep with shield (by default first 150 milliseconds of 250 milliseconds full dash)
 * set stamina usage multiplier and dash cooldown
 * perform regular dodge on double click
+* restrict quickstep usage with different options (shields, items equipped, status effects active or missing)
 * server synced config
 
 ## Installation (manual)
@@ -27,3 +30,6 @@ Or [Official BepInEx Configuration Manager](https://valheim.thunderstore.io/pack
 
 ## Donation
 [Buy Me a Coffee](https://buymeacoffee.com/shudnal)
+
+## Discord
+[Join server](https://discord.gg/e3UtQB8GFK)

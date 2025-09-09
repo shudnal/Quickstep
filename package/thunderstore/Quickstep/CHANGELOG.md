@@ -1,3 +1,10 @@
+# 1.0.12
+* Call To Arms patch
+* new option to restrict quickstep if some item is equipped
+* new option to restrict quickstep if player has status effect
+* new option to restrict quickstep if player has no status effect
+* new options to restrict quickstep if player has buckler or tower shield
+
 # 1.0.11
 * patch 0.220.3
 * ServerSync updated

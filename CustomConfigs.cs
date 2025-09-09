@@ -96,5 +96,47 @@ namespace Quickstep
                     cfg.BoxedValue = String.Join(splitString, newStrings);
             };
         }
+
+        internal static Action<ConfigEntryBase> DrawOrderedFixedStrings(string splitString)
+        {
+            return cfg =>
+            {
+                bool locked = cfg.Description.Tags.Select(a => a.GetType().Name == "ConfigurationManagerAttributes" ? (bool?)a.GetType().GetField("ReadOnly")?.GetValue(a) : null).FirstOrDefault(v => v != null) ?? false;
+
+                bool wasUpdated = false;
+
+                GUILayout.BeginVertical();
+
+                string[] strings = ((string)cfg.BoxedValue).Split(new string[] { splitString }, StringSplitOptions.None).ToArray();
+
+                for (int i = 0; i < strings.Length; i++)
+                {
+                    GUILayout.BeginHorizontal();
+
+                    string val = strings[i];
+
+                    GUILayout.Label(val, GetStyle(GUI.skin.textArea), GUILayout.ExpandWidth(true));
+
+                    if (GUILayout.Button("ʌ", new GUIStyle(GetStyle(GUI.skin.button)) { fixedWidth = 21 }) && !locked)
+                    {
+                        if (wasUpdated = i > 0)
+                            (strings[i], strings[i - 1]) = (strings[i - 1], strings[i]);
+                    }
+
+                    if (GUILayout.Button("v", new GUIStyle(GetStyle(GUI.skin.button)) { fixedWidth = 21 }) && !locked)
+                    {
+                        if (wasUpdated = i < strings.Length - 1)
+                            (strings[i], strings[i + 1]) = (strings[i + 1], strings[i]);
+                    }
+
+                    GUILayout.EndHorizontal();
+                }
+
+                GUILayout.EndVertical();
+
+                if (wasUpdated)
+                    cfg.BoxedValue = string.Join(splitString, strings);
+            };
+        }
     }
 }

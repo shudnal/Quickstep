@@ -1,11 +1,13 @@
 ﻿using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
-using UnityEngine;
-using System.Collections;
 using ServerSync;
-using System.Collections.Generic;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace Quickstep
 {
@@ -14,7 +16,7 @@ namespace Quickstep
     {
         public const string pluginID = "shudnal.Quickstep";
         public const string pluginName = "Quickstep";
-        public const string pluginVersion = "1.0.11";
+        public const string pluginVersion = "1.0.12";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -30,6 +32,12 @@ namespace Quickstep
         private static ConfigEntry<float> dashCooldownTime;
         private static ConfigEntry<float> dashStaminaMultiplier;
         private static ConfigEntry<bool> dodgeOnDoubleClick;
+
+        private static ConfigEntry<bool> preventQuickStepWithBucklers;
+        private static ConfigEntry<bool> preventQuickStepWithTowerShields;
+        private static ConfigEntry<string> preventQuickStepWithEquippedItem;
+        private static ConfigEntry<string> preventQuickStepWithStatusEffect;
+        private static ConfigEntry<string> preventQuickStepWithoutStatusEffect;
 
         private static ConfigEntry<bool> allowBareFists;
         private static ConfigEntry<bool> allowSwords;
@@ -93,6 +101,9 @@ namespace Quickstep
         internal static Quickstep instance;
 
         private static readonly Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>> customPrefabs = new Dictionary<string, Tuple<ConfigEntry<float>, ConfigEntry<float>>>();
+        private static readonly List<string> itemsToPrevent = new List<string>();
+        private static readonly List<int> seToPrevent = new List<int>();
+        private static readonly List<int> seToHave = new List<int>();
 
         private static bool isDashed;
         private static bool skipToDodge;
@@ -140,6 +151,16 @@ namespace Quickstep
             dashStaminaMultiplier = config("Quickstep", "Stamina usage multiplier", defaultValue: 0.6f, "Multiplier of how much less stamina you will use on quickstep than dodge stamina usage.");
             dodgeOnDoubleClick = config("Quickstep", "Dodge on double click", defaultValue: true, "Double click dodge button to perform regular dodge.");
 
+            preventQuickStepWithBucklers = config("Restrictions", "Prevent quickstep with equipped buckler", defaultValue: false, "Prevent quickstep when small shield is in left hand");
+            preventQuickStepWithTowerShields = config("Restrictions", "Prevent quickstep with equipped tower shield", defaultValue: true, "Prevent quickstep when tower shield is in left hand");
+            preventQuickStepWithEquippedItem = config("Restrictions", "Prevent quickstep with items equipped", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of item prefabs (not just weapons) when you have any of it equipped quickstep will not perform"));
+            preventQuickStepWithStatusEffect = config("Restrictions", "Prevent quickstep with active status effect", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of status effect prefab name or localized name when you have any of status effects quickstep will not perform"));
+            preventQuickStepWithoutStatusEffect = config("Restrictions", "Prevent quickstep without active status effect", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of status effect prefab name or localized name when you do NOT have any of status effects quickstep will not perform"));
+
+            preventQuickStepWithEquippedItem.SettingChanged += (sender, args) => UpdateRestrictions();
+            preventQuickStepWithStatusEffect.SettingChanged += (sender, args) => UpdateRestrictions();
+            preventQuickStepWithoutStatusEffect.SettingChanged += (sender, args) => UpdateRestrictions();
+
             allowBareFists = config("Weapons", "Allow quickstep with bare fists", defaultValue: false, "Perform quickstep instead of dodging while not using any weapon");
             allowSwords = config("Weapons", "Allow quickstep with Swords", defaultValue: false, "Perform quickstep instead of dodging while using Swords");
             allowKnives = config("Weapons", "Allow quickstep with Knives", defaultValue: true, "Perform quickstep instead of dodging while using Knives");
@@ -184,20 +205,20 @@ namespace Quickstep
             dashForceCustomPrefabs = config("Weapons - Details", "Dash force with Custom prefabs", defaultValue: 0.0f, "Dash force while using prefabs from custom list. Set 0 to use default value.");
             dashTimeCustomPrefabs = config("Weapons - Details", "Dash time with Custom prefabs", defaultValue: 0.0f, "Dash time while using prefabs from custom list. Set 0 to use default value.");
 
-            prefabListUseBareFistsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Bare fists config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from BareFists config");
-            prefabListUseSwordsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Swords config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Swords config");
-            prefabListUseKnivesConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Knives config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Knives config");
-            prefabListUseClubsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Clubs config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Clubs config");
-            prefabListUsePolearmsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Polearms config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Polearms config");
-            prefabListUseSpearsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Spears config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Spears config");
-            prefabListUseAxesConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Axes config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Axes config");
-            prefabListUseBowsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Bows config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Bows config");
-            prefabListUseElementalMagicConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use ElementalMagic config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from ElementalMagic config");
-            prefabListUseBloodMagicConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use BloodMagic config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from BloodMagic config");
-            prefabListUseUnarmedConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Unarmed config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Unarmed config");
-            prefabListUsePickaxesConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Pickaxes config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Pickaxes config");
-            prefabListUseCrossbowsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Crossbows config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from Crossbows config");
-            prefabListUseCustomPrefabsConfig = configSeparatedStrings("Weapons - Prefabs", "Prefab list to use Custom prefabs config", defaultValue: "", "Comma-separated list of prefabs to use dash force and time from CustomPrefabs config");
+            prefabListUseBareFistsConfig = config("Weapons - Prefabs", "Prefab list to use Bare fists config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from BareFists config"));
+            prefabListUseSwordsConfig = config("Weapons - Prefabs", "Prefab list to use Swords config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Swords config"));
+            prefabListUseKnivesConfig = config("Weapons - Prefabs", "Prefab list to use Knives config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Knives config"));
+            prefabListUseClubsConfig = config("Weapons - Prefabs", "Prefab list to use Clubs config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Clubs config"));
+            prefabListUsePolearmsConfig = config("Weapons - Prefabs", "Prefab list to use Polearms config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Polearms config"));
+            prefabListUseSpearsConfig = config("Weapons - Prefabs", "Prefab list to use Spears config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Spears config"));
+            prefabListUseAxesConfig = config("Weapons - Prefabs", "Prefab list to use Axes config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Axes config"));
+            prefabListUseBowsConfig = config("Weapons - Prefabs", "Prefab list to use Bows config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Bows config"));
+            prefabListUseElementalMagicConfig = config("Weapons - Prefabs", "Prefab list to use ElementalMagic config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from ElementalMagic config"));
+            prefabListUseBloodMagicConfig = config("Weapons - Prefabs", "Prefab list to use BloodMagic config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from BloodMagic config"));
+            prefabListUseUnarmedConfig = config("Weapons - Prefabs", "Prefab list to use Unarmed config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Unarmed config"));
+            prefabListUsePickaxesConfig = config("Weapons - Prefabs", "Prefab list to use Pickaxes config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Pickaxes config"));
+            prefabListUseCrossbowsConfig = config("Weapons - Prefabs", "Prefab list to use Crossbows config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from Crossbows config"));
+            prefabListUseCustomPrefabsConfig = config("Weapons - Prefabs", "Prefab list to use Custom prefabs config", defaultValue: "", GetDescriptionSeparatedStrings("Comma-separated list of prefabs to use dash force and time from CustomPrefabs config"));
             
             prefabListUseBareFistsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
             prefabListUseSwordsConfig.SettingChanged += (sender, args) => UpdateCustomPrefabs();
@@ -227,9 +248,11 @@ namespace Quickstep
 
         ConfigEntry<T> config<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = true) => config(group, name, defaultValue, new ConfigDescription(description), synchronizedSetting);
 
-        ConfigEntry<T> configSeparatedStrings<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = true) => config(group, name, defaultValue,
-                       new ConfigDescription(description, null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") }), synchronizedSetting);
-
+        private ConfigDescription GetDescriptionSeparatedStrings(string description) =>
+            Chainloader.PluginInfos.ContainsKey("_shudnal.ConfigurationManager")
+                    ? new ConfigDescription(description)
+                    : new ConfigDescription(description, null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings(",") });
+        
         private static void UpdateCustomPrefabs()
         {
             customPrefabs.Clear();
@@ -253,6 +276,32 @@ namespace Quickstep
             {
                 foreach (string prefabName in customConfigs.Value.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries))
                     customPrefabs.Add(prefabName, Tuple.Create(dashForce, dashTime));
+            }
+        }
+
+        private static bool isEquippedItemsRestrictionsUpdated;
+        private static bool quickstepPreventedByItemEquipped;
+
+        private static void UpdateRestrictions()
+        {
+            itemsToPrevent.Clear();
+            preventQuickStepWithEquippedItem.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim().ToLower()).Do(itemsToPrevent.Add);
+            isEquippedItemsRestrictionsUpdated = false;
+
+            seToPrevent.Clear();
+            foreach (string seName in preventQuickStepWithStatusEffect.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                seToPrevent.Add(seName.GetStableHashCode());
+                if (ObjectDB.instance)
+                    ObjectDB.instance.m_StatusEffects.Where(se => string.Equals(se.name, seName, StringComparison.OrdinalIgnoreCase) || string.Equals(se.m_name, seName, StringComparison.OrdinalIgnoreCase)).Do(se => seToPrevent.Add(se.m_nameHash));
+            }
+
+            seToHave.Clear();
+            foreach (string seName in preventQuickStepWithoutStatusEffect.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                seToHave.Add(seName.GetStableHashCode());
+                if (ObjectDB.instance)
+                    ObjectDB.instance.m_StatusEffects.Where(se => string.Equals(se.name, seName, StringComparison.OrdinalIgnoreCase) || string.Equals(se.m_name, seName, StringComparison.OrdinalIgnoreCase)).Do(se => seToHave.Add(se.m_nameHash));
             }
         }
 
@@ -334,7 +383,7 @@ namespace Quickstep
             }
 
             // Let body save some velocity after quickstep
-            player.m_body.velocity = Vector3.Lerp(player.m_body.velocity, currentVel, 0.5f) * 0.3f;
+            player.m_body.linearVelocity = Vector3.Lerp(player.m_body.linearVelocity, currentVel, 0.5f) * 0.3f;
 
             if (player.m_dodgeInvincible)
             {
@@ -344,6 +393,7 @@ namespace Quickstep
             }
 
             player.m_inDodge = false;
+            player.m_beenHitWhileDodging = false;
 
             // Return crouching state
             player.SetCrouch(isCrouching);
@@ -390,6 +440,12 @@ namespace Quickstep
             if (skipToDodge)
                 return true;
 
+            if (!isEquippedItemsRestrictionsUpdated && Player.m_localPlayer == player)
+            {
+                isEquippedItemsRestrictionsUpdated = true;
+                quickstepPreventedByItemEquipped = player.GetInventory().GetEquippedItems().Any(item => itemsToPrevent.Contains(item.m_shared.m_name.ToLower()) || itemsToPrevent.Contains(item.m_dropPrefab?.name.ToLower()));
+            }
+
             if (!AllowQuickstep(player, out float dashForceWeapon, out float dashTimeWeapon))
                 return true;
 
@@ -405,6 +461,22 @@ namespace Quickstep
 
             if (player == null) 
                 return false;
+
+            if (player == Player.m_localPlayer)
+            {
+                if (quickstepPreventedByItemEquipped)
+                    return false;
+
+                if ((preventQuickStepWithBucklers.Value || preventQuickStepWithTowerShields.Value) && player.GetCurrentBlocker()?.m_shared is ItemDrop.ItemData.SharedData item && item.m_itemType == ItemDrop.ItemData.ItemType.Shield)
+                    if (preventQuickStepWithBucklers.Value && item.m_timedBlockBonus != 0 || preventQuickStepWithTowerShields.Value && item.m_timedBlockBonus == 0f)
+                        return false;
+
+                if (seToPrevent.Any(player.GetSEMan().HaveStatusEffect))
+                    return false;
+
+                if (seToHave.Count > 0 && !seToHave.Any(player.GetSEMan().HaveStatusEffect))
+                    return false;
+            }
 
             ItemDrop.ItemData weapon = player.GetRightItem() ?? player.GetLeftItem();
             if (weapon != null)
@@ -493,9 +565,7 @@ namespace Quickstep
             player.m_queuedDodgeTimer -= dt;
             if (player.m_queuedDodgeTimer > 0f && player.IsOnGround() && !player.IsDead() && !player.InAttack() && !player.IsEncumbered() && !player.InDodge() && !player.IsStaggering() && !isDashed)
             {
-                float staminaUse = player.m_dodgeStaminaUsage;
-                staminaUse = staminaUse - staminaUse * player.GetEquipmentMovementModifier() + staminaUse * player.GetEquipmentDodgeStaminaModifier();
-                player.m_seman.ModifyDodgeStaminaUsage(staminaUse, ref staminaUse);
+                float staminaUse = player.GetDodgeStaminaUse();
                 
                 // Quickstep use less stamina that dodge
                 staminaUse *= dashStaminaMultiplier.Value;
@@ -512,7 +582,7 @@ namespace Quickstep
             player.m_queuedDodgeTimer = 0f;
 
             // Equipped shield reduces ability to perform a dash with full invincibility 
-            bool reducedIFrames = (player.GetLeftItem() != null) && player.GetLeftItem().m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield;
+            bool reducedIFrames = player.GetLeftItem()?.m_shared?.m_itemType == ItemDrop.ItemData.ItemType.Shield;
 
             // If player is not crouching then Crouching animation does need a workaround
             // The Blocking animation does not allow transition to Crouching animation which is an essential visual part of quickstep
@@ -551,6 +621,18 @@ namespace Quickstep
                     return;
 
                 UpdateCustomPrefabs();
+
+                UpdateRestrictions();
+            }
+        }
+
+        [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.SetupVisEquipment))]
+        public static class Humanoid_SetupVisEquipment_UpdateEquipmentStatus
+        {
+            private static void Finalizer(Humanoid __instance)
+            {
+                if (__instance == Player.m_localPlayer)
+                    isEquippedItemsRestrictionsUpdated = false;
             }
         }
     }
