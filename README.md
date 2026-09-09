@@ -16,7 +16,15 @@ If you perform quickstep with shield equipped then invincibility frames will be 
 ## Installation (manual)
 Extract Quickstep.dll file to your BepInEx\Plugins\ folder
 
-## Mirrors
-[Nexus](https://www.nexusmods.com/valheim/mods/2547)
+## Dependencies
 
-[Thunderstore](https://valheim.thunderstore.io/package/shudnal/Quickstep/)
+- [BepInExPack Valheim 5.4.2350](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/)
+- [ConditionalConfigSync 1.0.5](https://thunderstore.io/c/valheim/p/shudnal/ConditionalConfigSync/)
+
+Install ConditionalConfigSync as a separate dependency; do not copy its DLLs into this mod's package.
+
+## Donation
+[Buy Me a Coffee](https://buymeacoffee.com/shudnal)
+
+## Discord
+[Join server](https://discord.gg/e3UtQB8GFK)

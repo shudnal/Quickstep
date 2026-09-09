@@ -2,7 +2,7 @@
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ServerSync;
+using ConditionalConfigSync;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,11 +12,12 @@ using UnityEngine;
 namespace Quickstep
 {
     [BepInPlugin(pluginID, pluginName, pluginVersion)]
+    [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.5")]
     public class Quickstep : BaseUnityPlugin
     {
         public const string pluginID = "shudnal.Quickstep";
         public const string pluginName = "Quickstep";
-        public const string pluginVersion = "1.0.12";
+        public const string pluginVersion = "1.0.13";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -137,7 +138,6 @@ namespace Quickstep
 
         private void ConfigInit()
         {
-            config("General", "NexusID", 2547, "Nexus mod ID for updates");
 
             modEnabled = config("General", "Enabled", defaultValue: true, "Enable the mod");
             configLocked = config("General", "Lock Configuration", defaultValue: true, "Configuration is locked and can be changed by server admins only.");
@@ -240,8 +240,7 @@ namespace Quickstep
         {
             ConfigEntry<T> configEntry = Config.Bind(group, name, defaultValue, description);
 
-            SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
-            syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
+            configSync.AddConfigEntry(configEntry, ConfigSyncMode.Conditional, serverControlledByDefault: synchronizedSetting);
 
             return configEntry;
         }

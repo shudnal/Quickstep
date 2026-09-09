@@ -1,7 +1,10 @@
 {
   "name": "Quickstep",
-  "version_number": "1.0.12",
+  "version_number": "1.0.13",
   "website_url": "https://github.com/shudnal/Quickstep",
   "description": "Replace dodging roll animation with quickstep. Customizable by weapon types and custom prefabs.",
-  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2333"]
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "shudnal-ConditionalConfigSync-1.0.5"
+  ]
 }
