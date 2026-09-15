@@ -1,3 +1,6 @@
+# 1.0.14
+* possible fix for quickstep from emote and attach
+
 # 1.0.13
 * Updated for the Valheim 1.0.7 release.
 * Migrated configuration registration and synchronization to the standalone ConditionalConfigSync dependency.

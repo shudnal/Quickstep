@@ -1,6 +1,6 @@
 {
   "name": "Quickstep",
-  "version_number": "1.0.13",
+  "version_number": "1.0.14",
   "website_url": "https://github.com/shudnal/Quickstep",
   "description": "Replace dodging roll animation with quickstep. Customizable by weapon types and custom prefabs.",
   "dependencies": [
