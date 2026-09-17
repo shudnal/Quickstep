@@ -1,3 +1,6 @@
+# 1.0.15
+* prevent quickstep from emote and attach
+
 # 1.0.14
 * possible fix for quickstep from emote and attach
 

@@ -17,7 +17,7 @@ namespace Quickstep
     {
         public const string pluginID = "shudnal.Quickstep";
         public const string pluginName = "Quickstep";
-        public const string pluginVersion = "1.0.14";
+        public const string pluginVersion = "1.0.15";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -562,7 +562,7 @@ namespace Quickstep
         public static void UpdateQuickstep(Player player, float dt, float dashForceWeapon, float dashTimeWeapon)
         {
             player.m_queuedDodgeTimer -= dt;
-            if (player.m_queuedDodgeTimer > 0f && player.IsOnGround() && !player.IsDead() && !player.InAttack() && !player.IsEncumbered() && !player.InDodge() && !player.IsStaggering() && !isDashed)
+            if (player.m_queuedDodgeTimer > 0f && player.IsOnGround() && !player.IsDead() && !player.InAttack() && !player.IsEncumbered() && !player.InDodge() && !player.IsStaggering() && !isDashed && !player.InEmote() && !player.IsAttached())
             {
                 float staminaUse = player.GetDodgeStaminaUse();
                 
@@ -579,12 +579,6 @@ namespace Quickstep
         public static void PerformQuickstep(Player player, float staminaUse, float dashForceWeapon, float dashTimeWeapon)
         {
             player.m_queuedDodgeTimer = 0f;
-
-            if (player.InEmote() || player.IsAttached())
-            {
-                player.StopEmote();
-                player.AttachStop();
-            }
 
             // Equipped shield reduces ability to perform a dash with full invincibility 
             bool reducedIFrames = player.GetLeftItem()?.m_shared?.m_itemType == ItemDrop.ItemData.ItemType.Shield;
